@@ -12,7 +12,7 @@
 //! - Support for interrupts emitted by the bxCAN peripheral.
 //! - Transmission respects CAN IDs and protects against priority inversion (a lower-priority frame
 //!   may be dequeued when enqueueing a higher-priority one).
-//! - Implements the [`embedded-hal`] traits for interoperability.
+//! - Implements the [`embedded-can`] traits for interoperability.
 //! - Support for both RX FIFOs (as [`Rx0`] and [`Rx1`]).
 //!
 //! # Limitations
@@ -28,7 +28,7 @@
 //! [^1]: The specific version of defmt is unspecified and may be updated in a patch release.
 //!
 //! [`defmt`]: https://docs.rs/defmt
-//! [`embedded-hal`]: https://docs.rs/embedded-hal
+//! [`embedded-can`]: https://docs.rs/embedded-can
 
 #![doc(html_root_url = "https://docs.rs/bxcan/0.7.0")]
 // Deny a few warnings in doctests, since rustdoc `allow`s many warnings by default
@@ -36,7 +36,8 @@
 #![no_std]
 #![allow(clippy::unnecessary_operation)] // lint is bugged
 
-mod embedded_hal;
+mod embedded_can;
+
 pub mod filter;
 mod frame;
 mod id;

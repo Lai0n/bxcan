@@ -1,10 +1,12 @@
-//! `embedded_hal` trait impls.
+//! `embedded_can` trait impls.
 
-use crate::{Can, Data, ExtendedId, Frame, Id, Instance, OverrunError, StandardId};
+#![cfg(feature = "can")]
 
-use embedded_hal_02::can;
+use core::convert::Infallible;
+use nb::block;
+use crate::{Can, Data, ExtendedId, Frame, Id, Instance, OverrunError, StandardId, TransmitStatus};
 
-impl<I> can::Can for Can<I>
+impl<I> embedded_can::nb::Can for Can<I>
 where
     I: Instance,
 {
@@ -25,19 +27,42 @@ where
     }
 }
 
-impl can::Error for OverrunError {
-    fn kind(&self) -> can::ErrorKind {
-        can::ErrorKind::Overrun
+impl<I> embedded_can::blocking::Can for Can<I>
+where
+    I: Instance,
+{
+    type Frame = Frame;
+
+    type Error = OverrunError;
+
+    fn transmit(&mut self, frame: &Self::Frame) -> Result<(), Self::Error> {
+        // todo should implement nb api with dequeing support
+        while !self.is_transmitter_idle() {}
+
+        let r = block!(self.transmit(frame));
+        match r {
+            Ok(_) => Ok(()),
+            Err(nb::Error::Other(e)) => match e {},
+            _ => {}
+        }
+    }
+
+    fn receive(&mut self) -> Result<Self::Frame, Self::Error> { block!(self.receive()) }
+}
+
+impl embedded_can::Error for OverrunError {
+    fn kind(&self) -> embedded_can::ErrorKind {
+        embedded_can::ErrorKind::Overrun
     }
 }
 
-impl can::Frame for Frame {
-    fn new(id: impl Into<can::Id>, data: &[u8]) -> Option<Self> {
+impl embedded_can::Frame for Frame {
+    fn new(id: impl Into<embedded_can::Id>, data: &[u8]) -> Option<Self> {
         let id = match id.into() {
-            can::Id::Standard(id) => unsafe {
+            embedded_can::Id::Standard(id) => unsafe {
                 Id::Standard(StandardId::new_unchecked(id.as_raw()))
             },
-            can::Id::Extended(id) => unsafe {
+            embedded_can::Id::Extended(id) => unsafe {
                 Id::Extended(ExtendedId::new_unchecked(id.as_raw()))
             },
         };
@@ -46,12 +71,12 @@ impl can::Frame for Frame {
         Some(Frame::new_data(id, data))
     }
 
-    fn new_remote(id: impl Into<can::Id>, dlc: usize) -> Option<Self> {
+    fn new_remote(id: impl Into<embedded_can::Id>, dlc: usize) -> Option<Self> {
         let id = match id.into() {
-            can::Id::Standard(id) => unsafe {
+            embedded_can::Id::Standard(id) => unsafe {
                 Id::Standard(StandardId::new_unchecked(id.as_raw()))
             },
-            can::Id::Extended(id) => unsafe {
+            embedded_can::Id::Extended(id) => unsafe {
                 Id::Extended(ExtendedId::new_unchecked(id.as_raw()))
             },
         };
@@ -74,13 +99,13 @@ impl can::Frame for Frame {
     }
 
     #[inline]
-    fn id(&self) -> can::Id {
+    fn id(&self) -> embedded_can::Id {
         match self.id() {
             Id::Standard(id) => unsafe {
-                can::Id::Standard(can::StandardId::new_unchecked(id.as_raw()))
+                embedded_can::Id::Standard(embedded_can::StandardId::new_unchecked(id.as_raw()))
             },
             Id::Extended(id) => unsafe {
-                can::Id::Extended(can::ExtendedId::new_unchecked(id.as_raw()))
+                embedded_can::Id::Extended(embedded_can::ExtendedId::new_unchecked(id.as_raw()))
             },
         }
     }
