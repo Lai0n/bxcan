@@ -42,8 +42,7 @@ where
         let r = block!(self.transmit(frame));
         match r {
             Ok(_) => Ok(()),
-            Err(nb::Error::Other(e)) => match e {},
-            _ => {}
+            Err(e) => match e {},
         }
     }
 
